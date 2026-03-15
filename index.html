@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מחולל סטריפונים | כלכליסט</title>
+  <style>
+    :root {
+      --red: #E31E24;
+      --dark: #1a1a1a;
+      --gray-bg: #f0f0f0;
+      --border: #ddd;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; background: var(--gray-bg); color: var(--dark); min-height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      background: var(--dark);
+      border-bottom: 4px solid var(--red);
+      padding: 11px 24px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    header img { height: 26px; border-radius: 3px; }
+    .header-title { color: #aaa; font-size: 13px; }
+
+    /* ── Layout: controls LEFT, preview RIGHT ── */
+    .main {
+      max-width: 1100px;
+      margin: 20px auto;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 270px 1fr;
+      gap: 16px;
+      align-items: start;
+      direction: ltr;
+    }
+    .main > * { direction: rtl; }
+
+    /* ── Cards ── */
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 0 1px 5px rgba(0,0,0,.09);
+      margin-bottom: 14px;
+      min-width: 0;
+    }
+    .card:last-child { margin-bottom: 0; }
+    .card-title {
+      font-size: 13px; font-weight: bold;
+      margin-bottom: 14px; padding-bottom: 7px;
+      border-bottom: 3px solid var(--red);
+    }
+
+    /* ── Upload ── */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 7px;
+      padding: 24px 12px; text-align: center; cursor: pointer;
+      background: #fafafa; transition: border-color .2s, background .2s;
+    }
+    .upload-zone:hover, .upload-zone.drag-over { border-color: var(--red); background: #fff5f5; }
+    .upload-zone .icon  { font-size: 32px; margin-bottom: 8px; }
+    .upload-zone .main-t { font-size: 12px; font-weight: bold; color: #333; margin-bottom: 3px; }
+    .upload-zone .sub-t  { font-size: 10px; color: #999; }
+    #imageInput { display: none; }
+
+    /* ── Badge type ── */
+    .badge-options { display: flex; gap: 8px; }
+    .badge-opt {
+      flex: 1; border: 2px solid var(--border); border-radius: 7px;
+      padding: 8px 6px; text-align: center; cursor: pointer;
+      font-size: 11px; font-weight: bold; transition: all .15s; min-width: 0;
+    }
+    .badge-opt .prev { height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; overflow: hidden; }
+    .badge-opt .prev img { max-height: 24px; max-width: 100%; object-fit: contain; border-radius: 3px; }
+    .badge-opt:hover  { border-color: var(--red); }
+    .badge-opt.active { border-color: var(--red); background: #fff5f5; }
+
+    /* ── Sliders ── */
+    .ctrl-label { font-size: 11px; font-weight: bold; color: #555; display: block; margin-bottom: 4px; }
+    .ctrl-group { margin-bottom: 12px; }
+    input[type=range] { width: 100%; accent-color: var(--red); }
+    .range-ends { display: flex; justify-content: space-between; font-size: 10px; color: #aaa; margin-top: 1px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: block; width: 100%; padding: 11px;
+      border: none; border-radius: 7px; font-size: 13px; font-weight: bold;
+      cursor: pointer; margin-bottom: 8px;
+    }
+    .btn-dark { background: var(--dark); color: #fff; }
+    .btn-dark:hover:not(:disabled) { background: #333; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    .status { font-size: 11px; min-height: 15px; color: #888; margin-top: 4px; }
+    .status.ok  { color: #2e7d32; }
+    .status.err { color: var(--red); }
+
+    /* ── Preview / Crop card ── */
+    .preview-card {
+      background: #fff; border-radius: 10px; padding: 18px;
+      box-shadow: 0 1px 5px rgba(0,0,0,.09); min-width: 0; overflow: hidden;
+    }
+    #outputCanvas { display: none; }
+
+    /* ── Crop editor ── */
+    .crop-wrapper {
+      position: relative; width: 100%;
+      background: #555; border-radius: 6px;
+      overflow: hidden; user-select: none; min-height: 80px;
+    }
+    #cropCanvas { display: block; width: 100%; height: auto; cursor: crosshair; }
+    .crop-placeholder {
+      position: absolute; inset: 0; min-height: 200px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: #e8e8e8; color: #bbb; pointer-events: none; font-size: 14px;
+    }
+    .crop-placeholder .ph-icon { font-size: 40px; margin-bottom: 8px; }
+    .crop-btns { display: flex; gap: 8px; margin-top: 10px; direction: rtl; align-items: center; }
+    .btn-sm {
+      padding: 6px 14px; border: 1px solid #ddd; border-radius: 6px;
+      font-size: 12px; cursor: pointer; background: #fff;
+      font-family: Arial, sans-serif; color: #333;
+    }
+    .btn-sm:hover { background: #f0f0f0; border-color: #aaa; }
+    .crop-info { font-size: 11px; color: #999; margin-right: auto; }
+
+    @media (max-width: 700px) {
+      .main { grid-template-columns: 1fr; direction: rtl; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="calcalist-logo.jpg" alt="כלכליסט">
+  <div class="header-title">מחולל סטריפונים</div>
+</header>
+
+<div class="main">
+
+  <!-- ── LEFT: Controls ── -->
+  <div>
+
+    <div class="card">
+      <div class="card-title">העלאת תמונה</div>
+      <div class="upload-zone" id="uploadZone">
+        <div class="icon">🖼️</div>
+        <div class="main-t">גרור תמונה לכאן</div>
+        <div class="sub-t">או לחץ לבחירת קובץ · JPG · PNG</div>
+      </div>
+      <input type="file" id="imageInput" accept=".jpg,.jpeg,.png,image/jpeg,image/png">
+      <div id="imageStatus" class="status"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">סוג סטריפון</div>
+      <div class="badge-options">
+        <div class="badge-opt active" data-type="standard">
+          <div class="prev"><img src="calcalist-logo.jpg" alt="כלכליסט"></div>
+          <div>כלכליסט</div>
+        </div>
+        <div class="badge-opt" data-type="tech">
+          <div class="prev"><img src="CALCALISTH-TECH-LOGO-ACCURATE.jpeg" alt="כלכליסט טק"></div>
+          <div>כלכליסט טק</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">הגדרות</div>
+
+      <div class="ctrl-group">
+        <label class="ctrl-label">איכות JPEG — <span id="qualVal">95</span>%</label>
+        <input type="range" id="qualSlider" min="70" max="100" value="95">
+      </div>
+
+      <button class="btn btn-dark" id="downloadBtn" disabled>⬇️ הורד JPEG</button>
+      <div id="dlStatus" class="status"></div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT: Crop editor ── -->
+  <div class="preview-card">
+    <div class="card-title">חתוך והתאם לסטריפון</div>
+    <div class="crop-wrapper">
+      <canvas id="cropCanvas"></canvas>
+      <div class="crop-placeholder" id="cropPlaceholder">
+        <div class="ph-icon">🖼️</div>
+        <div>העלה תמונה כדי להתחיל</div>
+      </div>
+    </div>
+    <div class="crop-btns">
+      <button class="btn-sm" id="btnReset">אפס בחירה</button>
+      <span class="crop-info">גרור את המלבן לשינוי מיקום · גרור פינה לשינוי גודל</span>
+    </div>
+  </div>
+
+</div>
+
+<canvas id="outputCanvas"></canvas>
+
+<script>
+
+  const logoStd  = new Image(); logoStd.src  = 'data:image/png;base64,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';
+  const logoTech = new Image(); logoTech.src = 'data:image/png;base64,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';
+  let logoStdReady = false, logoTechReady = false;
+  logoStd.onload  = () => { logoStdReady  = true; renderCropTool(); };
+  logoTech.onload = () => { logoTechReady = true; renderCropTool(); };
+
+  const OUT_W = 500, OUT_H = 282;
+  const CROP_ASPECT = OUT_W / OUT_H;
+  const HANDLE_R = 14; // hit radius in canvas pixels
+
+  let uploadedImg = null, badgeType = 'standard';
+  let imgDispScale = 1;
+  // Crop rect in image pixel coordinates
+  let cropX = 0, cropY = 0, cropW = 0, cropH = 0;
+  // Drag state
+  let dragMode = null; // null | 'move' | 'tl' | 'tr' | 'bl' | 'br'
+  let dragStartIX = 0, dragStartIY = 0, dragStart = {};
+
+  const uploadZone      = document.getElementById('uploadZone');
+  const imageInput      = document.getElementById('imageInput');
+  const downloadBtn     = document.getElementById('downloadBtn');
+  const dlStatus        = document.getElementById('dlStatus');
+  const imgStatus       = document.getElementById('imageStatus');
+  const cropPlaceholder = document.getElementById('cropPlaceholder');
+  const outputCanvas    = document.getElementById('outputCanvas');
+  const cropCanvasEl    = document.getElementById('cropCanvas');
+  const cropCtx         = cropCanvasEl.getContext('2d');
+
+  /* ── Upload ── */
+  uploadZone.addEventListener('click', () => imageInput.click());
+  uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', ()=> uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault(); uploadZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+  });
+  imageInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+  function loadFile(file) {
+    if (!['image/jpeg','image/jpg','image/png'].includes(file.type)) {
+      imgStatus.textContent = 'שגיאה: JPG או PNG בלבד';
+      imgStatus.className = 'status err'; return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const img = new Image();
+      img.onload = () => {
+        uploadedImg = img;
+        imgStatus.textContent = `✓ ${img.width}×${img.height}px`;
+        imgStatus.className = 'status ok';
+        initCropTool(img);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /* ── Init crop tool: set canvas size, reset crop rect ── */
+  function initCropTool(img) {
+    const containerW = cropCanvasEl.parentElement?.clientWidth || 700;
+    imgDispScale = Math.min(containerW / img.naturalWidth, 520 / img.naturalHeight);
+    cropCanvasEl.width  = Math.round(img.naturalWidth  * imgDispScale);
+    cropCanvasEl.height = Math.round(img.naturalHeight * imgDispScale);
+    resetCrop();
+    renderCropTool();
+  }
+
+  /* ── Reset crop rect to best-fit at CROP_ASPECT ── */
+  function resetCrop() {
+    if (!uploadedImg) return;
+    const iw = uploadedImg.naturalWidth, ih = uploadedImg.naturalHeight;
+    if (iw / ih > CROP_ASPECT) {
+      cropH = ih; cropW = cropH * CROP_ASPECT;
+      cropX = (iw - cropW) / 2; cropY = 0;
+    } else {
+      cropW = iw; cropH = cropW / CROP_ASPECT;
+      cropX = 0; cropY = (ih - cropH) / 2;
+    }
+  }
+
+  document.getElementById('btnReset').addEventListener('click', () => {
+    if (uploadedImg) { resetCrop(); renderCropTool(); }
+  });
+
+  /* ── Badge type ── */
+  document.querySelectorAll('.badge-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.badge-opt').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      badgeType = btn.dataset.type;
+      renderCropTool();
+    });
+  });
+
+  /* ── Sliders ── */
+  document.getElementById('qualSlider').addEventListener('input', e => {
+    document.getElementById('qualVal').textContent = e.target.value;
+  });
+
+  /* ── Coordinate helpers ── */
+  // Convert CSS-pixel mouse event to canvas-pixel coords
+  function getCanvasCoords(e) {
+    const r = cropCanvasEl.getBoundingClientRect();
+    const scX = cropCanvasEl.width  / r.width;
+    const scY = cropCanvasEl.height / r.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - r.left) * scX, y: (src.clientY - r.top) * scY };
+  }
+  // Canvas pixels → image pixels
+  function c2i(cx, cy) { return { x: cx / imgDispScale, y: cy / imgDispScale }; }
+  // Crop rect in canvas pixels
+  function getCropCanvas() {
+    return { x: cropX * imgDispScale, y: cropY * imgDispScale,
+             w: cropW * imgDispScale, h: cropH * imgDispScale };
+  }
+
+  /* ── Hit test: which handle is near (cx,cy) in canvas pixels ── */
+  function getHandle(cx, cy) {
+    const r = getCropCanvas();
+    const corners = [
+      { id: 'tl', x: r.x,       y: r.y },
+      { id: 'tr', x: r.x + r.w, y: r.y },
+      { id: 'bl', x: r.x,       y: r.y + r.h },
+      { id: 'br', x: r.x + r.w, y: r.y + r.h },
+    ];
+    for (const c of corners)
+      if (Math.hypot(cx - c.x, cy - c.y) <= HANDLE_R) return c.id;
+    return null;
+  }
+  function isInsideCrop(cx, cy) {
+    const r = getCropCanvas();
+    return cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h;
+  }
+
+  /* ── Clamp crop rect within image ── */
+  function clampCrop() {
+    const iw = uploadedImg.naturalWidth, ih = uploadedImg.naturalHeight;
+    cropW = Math.max(30, cropW);
+    cropH = cropW / CROP_ASPECT;
+    if (cropW > iw) { cropW = iw; cropH = cropW / CROP_ASPECT; }
+    if (cropH > ih) { cropH = ih; cropW = cropH * CROP_ASPECT; }
+    cropX = Math.max(0, Math.min(cropX, iw - cropW));
+    cropY = Math.max(0, Math.min(cropY, ih - cropH));
+  }
+
+  /* ── Resize from corner (drag to new image-pixel position imgMX, imgMY) ── */
+  function resizeCorner(handle, imgMX, imgMY) {
+    const { cropX: ox, cropY: oy, cropW: ow, cropH: oh } = dragStart;
+    let nw, nh, nx, ny;
+    if (handle === 'br') {
+      nw = imgMX - ox; nx = ox; ny = oy;
+    } else if (handle === 'bl') {
+      nw = (ox + ow) - imgMX; nx = (ox + ow) - nw; ny = oy;
+    } else if (handle === 'tr') {
+      nw = imgMX - ox; nx = ox; ny = oy + oh - nw / CROP_ASPECT;
+    } else { // tl
+      nw = (ox + ow) - imgMX; nx = (ox + ow) - nw; ny = oy + oh - nw / CROP_ASPECT;
+    }
+    cropX = nx; cropY = ny; cropW = nw; cropH = nw / CROP_ASPECT;
+    clampCrop();
+  }
+
+  /* ── Mouse events ── */
+  cropCanvasEl.addEventListener('mousedown', e => {
+    if (!uploadedImg) return; e.preventDefault();
+    const { x, y } = getCanvasCoords(e);
+    const h = getHandle(x, y);
+    dragMode = h || (isInsideCrop(x, y) ? 'move' : null);
+    if (!dragMode) return;
+    const ip = c2i(x, y);
+    dragStartIX = ip.x; dragStartIY = ip.y;
+    dragStart = { cropX, cropY, cropW, cropH };
+  });
+  window.addEventListener('mousemove', e => {
+    if (!uploadedImg) return;
+    const { x, y } = getCanvasCoords(e);
+    if (dragMode) {
+      const ip = c2i(x, y);
+      if (dragMode === 'move') {
+        cropX = dragStart.cropX + (ip.x - dragStartIX);
+        cropY = dragStart.cropY + (ip.y - dragStartIY);
+        clampCrop();
+      } else {
+        resizeCorner(dragMode, ip.x, ip.y);
+      }
+      renderCropTool();
+    } else {
+      // Update cursor
+      const h = getHandle(x, y);
+      if (h === 'tl' || h === 'br')      cropCanvasEl.style.cursor = 'nwse-resize';
+      else if (h === 'tr' || h === 'bl') cropCanvasEl.style.cursor = 'nesw-resize';
+      else if (isInsideCrop(x, y))       cropCanvasEl.style.cursor = 'move';
+      else                               cropCanvasEl.style.cursor = 'crosshair';
+    }
+  });
+  window.addEventListener('mouseup', () => { dragMode = null; });
+
+  /* ── Touch events ── */
+  cropCanvasEl.addEventListener('touchstart', e => {
+    if (!uploadedImg || e.touches.length !== 1) return; e.preventDefault();
+    const { x, y } = getCanvasCoords(e);
+    const h = getHandle(x, y);
+    dragMode = h || (isInsideCrop(x, y) ? 'move' : null);
+    if (!dragMode) return;
+    const ip = c2i(x, y);
+    dragStartIX = ip.x; dragStartIY = ip.y;
+    dragStart = { cropX, cropY, cropW, cropH };
+  }, { passive: false });
+  cropCanvasEl.addEventListener('touchmove', e => {
+    if (!dragMode || !uploadedImg || e.touches.length !== 1) return; e.preventDefault();
+    const { x, y } = getCanvasCoords(e);
+    const ip = c2i(x, y);
+    if (dragMode === 'move') {
+      cropX = dragStart.cropX + (ip.x - dragStartIX);
+      cropY = dragStart.cropY + (ip.y - dragStartIY);
+      clampCrop();
+    } else {
+      resizeCorner(dragMode, ip.x, ip.y);
+    }
+    renderCropTool();
+  }, { passive: false });
+  cropCanvasEl.addEventListener('touchend', () => { dragMode = null; }, { passive: false });
+
+  /* ── Render crop tool ── */
+  function renderCropTool() {
+    if (!uploadedImg) return;
+    if (!logoStdReady) return;
+    if (badgeType === 'tech' && !logoTechReady) return;
+    cropPlaceholder.style.display = 'none';
+    downloadBtn.disabled = false;
+
+    const W = cropCanvasEl.width, H = cropCanvasEl.height;
+    cropCtx.clearRect(0, 0, W, H);
+    cropCtx.drawImage(uploadedImg, 0, 0, W, H);
+
+    const cx = Math.round(cropX * imgDispScale);
+    const cy = Math.round(cropY * imgDispScale);
+    const cw = Math.round(cropW * imgDispScale);
+    const ch = Math.round(cropH * imgDispScale);
+
+    // Dimmed overlay (4 rects outside crop)
+    cropCtx.fillStyle = 'rgba(0,0,0,0.55)';
+    cropCtx.fillRect(0,       0,  W,          cy);
+    cropCtx.fillRect(0,       cy, cx,         ch);
+    cropCtx.fillRect(cx + cw, cy, W - cx - cw, ch);
+    cropCtx.fillRect(0,  cy + ch, W,          H - cy - ch);
+
+    // Badge preview scaled into crop rect
+    cropCtx.save();
+    cropCtx.beginPath(); cropCtx.rect(cx, cy, cw, ch); cropCtx.clip();
+    cropCtx.translate(cx, cy);
+    cropCtx.scale(cw / OUT_W, ch / OUT_H);
+    composeBadge(cropCtx, OUT_W, OUT_H, badgeType);
+    cropCtx.restore();
+
+    // Dashed border
+    cropCtx.save();
+    cropCtx.strokeStyle = 'rgba(255,255,255,0.95)';
+    cropCtx.lineWidth = 2;
+    cropCtx.setLineDash([8, 5]);
+    cropCtx.strokeRect(cx + 1, cy + 1, cw - 2, ch - 2);
+    cropCtx.setLineDash([]);
+
+    // Rule-of-thirds grid
+    cropCtx.strokeStyle = 'rgba(255,255,255,0.22)';
+    cropCtx.lineWidth = 1;
+    cropCtx.beginPath();
+    [1/3, 2/3].forEach(t => {
+      cropCtx.moveTo(cx + cw * t, cy); cropCtx.lineTo(cx + cw * t, cy + ch);
+      cropCtx.moveTo(cx, cy + ch * t); cropCtx.lineTo(cx + cw, cy + ch * t);
+    });
+    cropCtx.stroke();
+
+    // Corner handles (filled circles)
+    [[cx, cy], [cx + cw, cy], [cx, cy + ch], [cx + cw, cy + ch]].forEach(([hx, hy]) => {
+      cropCtx.beginPath();
+      cropCtx.arc(hx, hy, HANDLE_R * 0.7, 0, Math.PI * 2);
+      cropCtx.fillStyle = 'rgba(255,255,255,0.92)';
+      cropCtx.fill();
+      cropCtx.strokeStyle = 'rgba(0,0,0,0.35)';
+      cropCtx.lineWidth = 1.5;
+      cropCtx.stroke();
+    });
+    cropCtx.restore();
+  }
+
+  /* ── composeBadge ──
+     PSD-exact positions (500×282 canvas):
+       standard : left=210 top=203  w=279 h=68
+       tech     : left=185 top=174  w=288 h=98
+     PNGs have alpha transparency — no clip path needed, just drawImage.
+  */
+  function composeBadge(ctx, W, H, type) {
+    const scW = W / 500, scH = H / 282;
+    if (type === 'standard') {
+      ctx.drawImage(logoStd,
+        Math.round(210 * scW), Math.round(203 * scH),
+        Math.round(279 * scW), Math.round(68  * scH));
+    } else if (type === 'tech') {
+      ctx.drawImage(logoTech,
+        Math.round(185 * scW), Math.round(174 * scH),
+        Math.round(288 * scW), Math.round(98  * scH));
+    }
+  }
+
+  /* ── Download: draw crop region at OUT_W×OUT_H + badge ── */
+  downloadBtn.addEventListener('click', () => {
+    if (!uploadedImg) return;
+    outputCanvas.width  = OUT_W;
+    outputCanvas.height = OUT_H;
+    const octx = outputCanvas.getContext('2d');
+    octx.drawImage(uploadedImg,
+      cropX, cropY, cropW, cropH,   // source: crop region in image pixels
+      0, 0, OUT_W, OUT_H            // dest: full output canvas
+    );
+    composeBadge(octx, OUT_W, OUT_H, badgeType);
+    const q = parseInt(document.getElementById('qualSlider').value) / 100;
+    const a = document.createElement('a');
+    a.download = `calcalist-stripon-${Date.now()}.jpg`;
+    a.href = outputCanvas.toDataURL('image/jpeg', q);
+    a.click();
+    dlStatus.textContent = '✓ הורד בהצלחה!';
+    dlStatus.className = 'status ok';
+    setTimeout(() => { dlStatus.textContent = ''; dlStatus.className = 'status'; }, 3000);
+  });
+</script>
+</body>
+</html>
