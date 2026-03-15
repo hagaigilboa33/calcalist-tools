@@ -169,13 +169,6 @@
     </div>
 
     <div class="card">
-      <div class="card-title">הגדרות</div>
-
-      <div class="ctrl-group">
-        <label class="ctrl-label">איכות JPEG — <span id="qualVal">95</span>%</label>
-        <input type="range" id="qualSlider" min="70" max="100" value="95">
-      </div>
-
       <button class="btn btn-dark" id="downloadBtn" disabled>⬇️ הורד JPEG</button>
       <div id="dlStatus" class="status"></div>
     </div>
@@ -299,9 +292,6 @@
   });
 
   /* ── Sliders ── */
-  document.getElementById('qualSlider').addEventListener('input', e => {
-    document.getElementById('qualVal').textContent = e.target.value;
-  });
 
   /* ── Coordinate helpers ── */
   // Convert CSS-pixel mouse event to canvas-pixel coords
@@ -520,7 +510,7 @@
       0, 0, OUT_W, OUT_H            // dest: full output canvas
     );
     composeBadge(octx, OUT_W, OUT_H, badgeType);
-    const q = parseInt(document.getElementById('qualSlider').value) / 100;
+    const q = 1.0;
     const a = document.createElement('a');
     a.download = `calcalist-stripon-${Date.now()}.jpg`;
     a.href = outputCanvas.toDataURL('image/jpeg', q);
