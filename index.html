@@ -91,6 +91,8 @@
     }
     .btn-dark { background: var(--dark); color: #fff; }
     .btn-dark:hover:not(:disabled) { background: #333; }
+    .btn-secondary { background: var(--red); color: #fff; }
+    .btn-secondary:hover:not(:disabled) { background: #c41920; }
     .btn:disabled { background: #ccc; cursor: not-allowed; }
     .status { font-size: 11px; min-height: 15px; color: #888; margin-top: 4px; }
     .status.ok  { color: #2e7d32; }
@@ -170,6 +172,7 @@
 
     <div class="card">
       <button class="btn btn-dark" id="downloadBtn" disabled>⬇️ הורד JPEG</button>
+      <button class="btn btn-secondary" id="sendBtn" disabled>✉️ שלח לגרפיקאית</button>
       <div id="dlStatus" class="status"></div>
     </div>
 
@@ -218,6 +221,7 @@
   const uploadZone      = document.getElementById('uploadZone');
   const imageInput      = document.getElementById('imageInput');
   const downloadBtn     = document.getElementById('downloadBtn');
+  const sendBtn         = document.getElementById('sendBtn');
   const dlStatus        = document.getElementById('dlStatus');
   const imgStatus       = document.getElementById('imageStatus');
   const cropPlaceholder = document.getElementById('cropPlaceholder');
@@ -424,6 +428,7 @@
     if (badgeType === 'tech' && !logoTechReady) return;
     cropPlaceholder.style.display = 'none';
     downloadBtn.disabled = false;
+    sendBtn.disabled = false;
 
     const W = cropCanvasEl.width, H = cropCanvasEl.height;
     cropCtx.clearRect(0, 0, W, H);
@@ -498,6 +503,16 @@
         Math.round(288 * scW), Math.round(98  * scH));
     }
   }
+
+  /* ── Send: open default email client addressed to designer ── */
+  sendBtn.addEventListener('click', () => {
+    const isTech = badgeType === 'tech';
+    const title = isTech ? 'הפניית כלכליסט-טק למובייל' : 'סטריפון כלכליסט';
+    const subject = encodeURIComponent(title);
+    const attached = isTech ? `מצורפת ${title}` : `מצורף ${title}`;
+    const body = encodeURIComponent(`שלום,\n${attached}.\n\nנא להוריד את הקובץ (כפתור "הורד JPEG") ולצרף למייל זה.`);
+    window.location.href = `mailto:design@ynet.co.il?subject=${subject}&body=${body}`;
+  });
 
   /* ── Download: draw crop region at OUT_W×OUT_H + badge ── */
   downloadBtn.addEventListener('click', () => {
