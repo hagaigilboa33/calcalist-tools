@@ -96,6 +96,40 @@
     .status.ok  { color: #2e7d32; }
     .status.err { color: var(--red); }
 
+    /* ── Mail popover ── */
+    .mail-popover {
+      position: absolute;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+      overflow: hidden;
+      z-index: 999;
+      min-width: 200px;
+      animation: popIn .15s ease;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .mail-popover-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 16px; cursor: pointer;
+      font-size: 13px; color: #222;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background .1s;
+      direction: rtl;
+    }
+    .mail-popover-item:last-child { border-bottom: none; }
+    .mail-popover-item:hover { background: #f7f7f7; }
+    .mail-popover-item .mail-icon { font-size: 18px; width: 24px; text-align: center; }
+    .mail-popover-title {
+      padding: 9px 16px 6px;
+      font-size: 11px; color: #999; font-weight: bold;
+      border-bottom: 1px solid #f0f0f0;
+      direction: rtl;
+    }
+
     /* ── Preview / Crop card ── */
     .preview-card {
       background: #fff; border-radius: 10px; padding: 18px;
@@ -543,14 +577,63 @@
   });
 
   /* ── Send to designer ── */
-  sendBtn.addEventListener('click', () => {
-    const istech = badgeType === 'tech';
-    const subject = encodeURIComponent(istech ? 'הפניית כלכליסט טק למובייל' : 'סטריפון כלכליסט');
-    const body    = encodeURIComponent(istech
+  let mailPopover = null;
+
+  function closMailPopover() {
+    if (mailPopover) { mailPopover.remove(); mailPopover = null; }
+  }
+
+  sendBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (mailPopover) { closMailPopover(); return; }
+
+    const istech  = badgeType === 'tech';
+    const to      = 'design@ynet.co.il';
+    const subject = istech ? 'הפניית כלכליסט טק למובייל' : 'סטריפון כלכליסט';
+    const body    = istech
       ? 'כל מה שנשאר זה לצרף כאן את הקובץ של הפניית כלכליסט טק במובייל'
-      : 'כל מה שנשאר זה לצרף כאן את הקובץ של הסטריפון');
-    window.location.href = `mailto:design@ynet.co.il?subject=${subject}&body=${body}`;
+      : 'כל מה שנשאר זה לצרף כאן את הקובץ של הסטריפון';
+
+    const eSubject = encodeURIComponent(subject);
+    const eBody    = encodeURIComponent(body);
+
+    const options = [
+      { icon: '📧', label: 'Gmail',             url: `https://mail.google.com/mail/?view=cm&to=${to}&su=${eSubject}&body=${eBody}` },
+      { icon: '📨', label: 'Outlook',           url: `https://outlook.office.com/mail/deeplink/compose?to=${to}&subject=${eSubject}&body=${eBody}` },
+      { icon: '✉️', label: 'מייל ברירת מחדל',  url: `mailto:${to}?subject=${eSubject}&body=${eBody}` },
+    ];
+
+    mailPopover = document.createElement('div');
+    mailPopover.className = 'mail-popover';
+
+    const title = document.createElement('div');
+    title.className = 'mail-popover-title';
+    title.textContent = 'פתח עם:';
+    mailPopover.appendChild(title);
+
+    options.forEach(opt => {
+      const item = document.createElement('div');
+      item.className = 'mail-popover-item';
+      item.innerHTML = `<span class="mail-icon">${opt.icon}</span><span>${opt.label}</span>`;
+      item.addEventListener('click', () => {
+        closMailPopover();
+        if (opt.url.startsWith('mailto:')) {
+          window.location.href = opt.url;
+        } else {
+          window.open(opt.url, '_blank');
+        }
+      });
+      mailPopover.appendChild(item);
+    });
+
+    // Position below the button
+    document.body.appendChild(mailPopover);
+    const btnRect = sendBtn.getBoundingClientRect();
+    mailPopover.style.top  = (btnRect.bottom + window.scrollY + 6) + 'px';
+    mailPopover.style.right = (window.innerWidth - btnRect.right) + 'px';
   });
+
+  document.addEventListener('click', closMailPopover);
 </script>
 </body>
 </html>
