@@ -170,6 +170,7 @@
 
     <div class="card">
       <button class="btn btn-dark" id="downloadBtn" disabled>⬇️ הורד JPEG</button>
+      <button class="btn btn-dark" id="sendBtn" disabled style="margin-top:8px">✉️ שלח לגרפיקאית</button>
       <div id="dlStatus" class="status"></div>
     </div>
 
@@ -218,6 +219,7 @@
   const uploadZone      = document.getElementById('uploadZone');
   const imageInput      = document.getElementById('imageInput');
   const downloadBtn     = document.getElementById('downloadBtn');
+  const sendBtn         = document.getElementById('sendBtn');
   const dlStatus        = document.getElementById('dlStatus');
   const imgStatus       = document.getElementById('imageStatus');
   const cropPlaceholder = document.getElementById('cropPlaceholder');
@@ -235,6 +237,7 @@
     imgStatus.className = 'status';
     dlStatus.textContent = '';
     downloadBtn.disabled = true;
+    sendBtn.disabled = true;
     cropPlaceholder.style.display = '';
     cropCtx.clearRect(0, 0, cropCanvasEl.width, cropCanvasEl.height);
     // Reset badge type to standard
@@ -442,6 +445,7 @@
     if (badgeType === 'tech' && !logoTechReady) return;
     cropPlaceholder.style.display = 'none';
     downloadBtn.disabled = false;
+    sendBtn.disabled = false;
 
     const W = cropCanvasEl.width, H = cropCanvasEl.height;
     cropCtx.clearRect(0, 0, W, H);
@@ -536,6 +540,16 @@
     dlStatus.textContent = '✓ הורד בהצלחה!';
     dlStatus.className = 'status ok';
     setTimeout(() => { dlStatus.textContent = ''; dlStatus.className = 'status'; }, 3000);
+  });
+
+  /* ── Send to designer ── */
+  sendBtn.addEventListener('click', () => {
+    const istech = badgeType === 'tech';
+    const subject = encodeURIComponent(istech ? 'הפניית כלכליסט טק למובייל' : 'סטריפון כלכליסט');
+    const body    = encodeURIComponent(istech
+      ? 'כל מה שנשאר זה לצרף כאן את הקובץ של הפניית כלכליסט טק במובייל'
+      : 'כל מה שנשאר זה לצרף כאן את הקובץ של הסטריפון');
+    window.location.href = `mailto:design@ynet.co.il?subject=${subject}&body=${body}`;
   });
 </script>
 </body>
