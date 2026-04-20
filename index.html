@@ -123,7 +123,6 @@
     .mail-popover-item:last-child { border-bottom: none; }
     .mail-popover-item:hover { background: #f7f7f7; }
     .mail-popover-item .mail-icon { font-size: 18px; width: 24px; text-align: center; }
-    .mail-sublabel { display: block; font-size: 10px; color: #aaa; font-weight: normal; margin-top: 1px; }
     .mail-popover-title {
       padding: 9px 16px 6px;
       font-size: 11px; color: #999; font-weight: bold;
@@ -599,9 +598,8 @@
     const eBody    = encodeURIComponent(body);
 
     const options = [
-      { icon: '📧', label: 'Gmail',                                        url: `https://mail.google.com/mail/?view=cm&to=${to}&su=${eSubject}&body=${eBody}` },
-      { icon: '📨', label: 'Outlook',                                      url: `https://outlook.office.com/mail/deeplink/compose?to=${to}&subject=${eSubject}&body=${eBody}` },
-      { icon: '✉️', label: 'מייל מקומי', sublabel: 'Apple Mail / Outlook desktop', url: `mailto:${to}?subject=${eSubject}&body=${eBody}` },
+      { icon: '✉️', label: 'ברירת מחדל', url: `mailto:${to}?subject=${eSubject}&body=${eBody}` },
+      { icon: '📧', label: 'Gmail',      url: `https://mail.google.com/mail/?view=cm&to=${to}&su=${eSubject}&body=${eBody}` },
     ];
 
     mailPopover = document.createElement('div');
